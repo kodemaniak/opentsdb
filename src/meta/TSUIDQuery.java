@@ -87,7 +87,9 @@ public class TSUIDQuery {
    * not exist
    */
   public void setQuery(final String metric, final HashMap<String, String> tags) {
-    this.metric = tsdb.getUID(UniqueIdType.METRIC, metric);
+  	if (metric != null) {
+  		this.metric = tsdb.getUID(UniqueIdType.METRIC, metric);
+  	}
     this.tags = Tags.resolveAll(tsdb, tags);
   }
   
@@ -172,11 +174,8 @@ public class TSUIDQuery {
    * was null (Empty map is OK).
    */
   public Deferred<List<TSMeta>> getTSMetas() {
-    // we need at least a metric name and the tags can't be null. Empty tags are
+  	// The tags can't be null. Empty tags are
     // fine, but the map can't be null.
-    if (metric == null || metric.length < 0) {
-      throw new IllegalArgumentException("Missing metric UID");
-    }
     if (tags == null) {
       throw new IllegalArgumentException("Tag map was null");
     }
@@ -476,12 +475,15 @@ public class TSUIDQuery {
    */
   private Scanner getScanner() {
     final Scanner scanner = tsdb.getClient().newScanner(tsdb.metaTable());
-    scanner.setStartKey(metric);
-    
-    // increment the metric UID by one so we can scan all of the rows for the
-    // given metric
-    final long stop = UniqueId.uidToLong(metric, TSDB.metrics_width()) + 1;
-    scanner.setStopKey(UniqueId.longToUID(stop, TSDB.metrics_width()));
+
+    // only if a metric is defined, set start and stop key
+    if (metric != null) {
+	    scanner.setStartKey(metric);
+	    // increment the metric UID by one so we can scan all of the rows for the
+	    // given metric
+	    final long stop = UniqueId.uidToLong(metric, TSDB.metrics_width()) + 1;
+	    scanner.setStopKey(UniqueId.longToUID(stop, TSDB.metrics_width()));
+    }
     scanner.setFamily(TSMeta.FAMILY());
     
     // set the filter if we have tags

@@ -280,7 +280,10 @@ final class UniqueIdRpc implements HttpRpc {
           throw new RuntimeException(e);
         }
     	} else {
-    		String mquery = query.getRequiredQueryStringParam("m");
+    		String mquery = query.getQueryStringParam("m");
+    		if (mquery == null) {
+    			mquery = "";
+    		}
         // m is of the following forms:
         // metric[{tag=value,...}]
         // where the parts in square brackets `[' .. `]' are optional.
@@ -291,6 +294,7 @@ final class UniqueIdRpc implements HttpRpc {
         } catch (IllegalArgumentException e) {
         	throw new BadRequestException(e);
         }
+        metric = metric.isEmpty() ? null : metric;
         final TSUIDQuery tsuid_query = new TSUIDQuery(tsdb);
         try {
           tsuid_query.setQuery(metric, tags);
