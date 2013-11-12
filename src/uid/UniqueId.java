@@ -383,6 +383,12 @@ public final class UniqueId implements UniqueIdInterface {
       class ErrBack implements Callback<Object, Exception> {
         public Object call(final Exception e) throws Exception {
           assignment.callback(e);
+          synchronized(pending_assignments) {
+            if (pending_assignments.containsKey(name)) {
+              pending_assignments.remove(name);
+              LOG.warn("Failed pending assignment for: " + name);
+            }
+          }
           return assignment;
         }
       }
@@ -508,6 +514,12 @@ public final class UniqueId implements UniqueIdInterface {
         class GetIdCB implements Callback<Deferred<byte[]>, byte[]> {
           public Deferred<byte[]> call(final byte[] row) throws Exception {
             assignment.callback(row);
+            synchronized(pending_assignments) {
+              if (pending_assignments.containsKey(name)) {
+                pending_assignments.remove(name);
+                LOG.info("Completed pending assignment for: " + name);
+              }
+            }
             return assignment;
           }
         }
@@ -523,8 +535,13 @@ public final class UniqueId implements UniqueIdInterface {
         tsdb.indexUIDMeta(meta);
       }
       
-      pending_assignments.remove(name);
       assignment.callback(row);
+      synchronized(pending_assignments) {
+        if (pending_assignments.containsKey(name)) {
+          pending_assignments.remove(name);
+          LOG.info("Completed pending assignment for: " + name);
+        }
+      }
       return assignment;
     }
 
@@ -947,24 +964,42 @@ public final class UniqueId implements UniqueIdInterface {
   public static byte[] stringToUid(final String uid) {
     return stringToUid(uid, (short)0);
   }
-  
+
   /**
-   * Converts a UID byte array to a long
-   * @param uid The UID to convert
-   * @param width The width of the UID in bytes
-   * @return The UID as a long
+   * Converts a UID to an integer value. The array must be the same length as
+   * uid_length or an exception will be thrown.
+   * @param uid The hex encoded UID to convert
+   * @param uid_length Length the array SHOULD be according to the UID config
+   * @return The UID converted to an integer
+   * @throws IllegalArgumentException if the length of the byte array does not
+   * match the uid_length value
    * @since 2.1
    */
-  public static long uidToLong(final byte[] uid, final short width) {
-    if (uid.length != width) {
-      throw new IllegalArgumentException("UID array width " + uid.length + 
-          " is not equal to required width " + width);
-    }
-    final byte[] padded = new byte[8];
-    System.arraycopy(uid, 0, padded, (8 - width), width);
-    return Bytes.getLong(padded);
+  public static long uidToLong(final String uid, final short uid_length) {
+    return uidToLong(stringToUid(uid), uid_length);
   }
   
+  /**
+   * Converts a UID to an integer value. The array must be the same length as
+   * uid_length or an exception will be thrown.
+   * @param uid The byte array to convert
+   * @param uid_length Length the array SHOULD be according to the UID config
+   * @return The UID converted to an integer
+   * @throws IllegalArgumentException if the length of the byte array does not
+   * match the uid_length value
+   * @since 2.1
+   */
+  public static long uidToLong(final byte[] uid, final short uid_length) {
+    if (uid.length != uid_length) {
+      throw new IllegalArgumentException("UID was " + uid.length 
+          + " bytes long but expected to be " + uid_length);
+    }
+    
+    final byte[] uid_raw = new byte[8];
+    System.arraycopy(uid, 0, uid_raw, 8 - uid_length, uid_length);
+    return Bytes.getLong(uid_raw);
+  }
+ 
   /**
    * Converts a Long to a byte array with the proper UID width
    * @param uid The UID to convert

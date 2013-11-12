@@ -151,6 +151,7 @@ test_SRC := \
 	test/stats/TestHistogram.java	\
 	test/storage/MockBase.java	\
 	test/tools/TestFsck.java	\
+	test/tools/TestUID.java	\
 	test/tree/TestBranch.java	\
 	test/tree/TestLeaf.java	\
 	test/tree/TestTree.java	\
@@ -539,7 +540,7 @@ debian: dist staticroot
 	$(mkdir_p) $(distdir)/debian/usr/share/opentsdb/tools
 	cp $(top_srcdir)/build-aux/deb/logback.xml $(distdir)/debian/etc/opentsdb
 	cp $(top_srcdir)/build-aux/deb/opentsdb.conf $(distdir)/debian/etc/opentsdb
-	cp $(top_srcdir)/src/create_table.sh $(distdir)/usr/share/opentsdb/bin
+	cp $(top_srcdir)/src/create_table.sh $(distdir)/debian/usr/share/opentsdb/bin
 	cp $(srcdir)/src/mygnuplot.sh $(distdir)/debian/usr/share/opentsdb/bin
 	script=tsdb; pkgdatadir='/usr/share/opentsdb'; configdir='/etc/opentsdb'; \
        abs_srcdir=''; abs_builddir=''; $(edit_tsdb_script)
